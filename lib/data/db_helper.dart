@@ -97,13 +97,6 @@ class DbHelper {
     return maps.map((m) => TransactionModel.fromMap(m)).toList();
   }
 
-  // Tambahkan fungsi untuk menghapus semua transaksi
-  Future<int> deleteAllTransactions() async {
-    final db = await database;
-    // Menggunakan delete() tanpa 'where' akan menghapus semua baris
-    return await db.delete('transactions');
-  }
-
   // ==================== CRUD Budgets ====================
 
   // Simpan anggaran baru ke database

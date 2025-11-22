@@ -15,7 +15,7 @@ final List<String> expenseCategories = [
   'Lain-lain'
 ];
 
-// Daftar kategori pemasukan
+// daftar kategori pemasukan
 final List<String> incomeCategories = [
   'Gaji',
   'Bonus',
@@ -42,10 +42,9 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
   final TextEditingController _descController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
 
-  // Variabel State Currency
+  // Variabel state currency
   String _selectedCurrency = 'IDR';
   final List<String> _currencies = ['IDR', 'USD', 'EUR', 'SGD'];
-
 
   @override
   void initState() {
@@ -98,12 +97,10 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
       return;
     }
 
-    // Konversi Mata Uang
     double finalAmount = amount;
 
     // KONVERSI OTOMATIS KE IDR SEBELUM SIMPAN
     if (_selectedCurrency != 'IDR') {
-
       // Panggil service konversi
       finalAmount = await CurrencyService.convertToIDR(amount, _selectedCurrency);
     }

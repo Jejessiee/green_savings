@@ -4,7 +4,6 @@ enum TransactionType { income, expense }
 // Model data untuk transaksi keuangan
 class TransactionModel {
   final int? id; // ID transaksi (nullable, karena bisa auto-increment)
-  final String? idFirestore; // ID Firestore (bisa null jika dari SQLite lama)
   final String description; // Deskripsi atau catatan transaksi
   final double amount; // Jumlah uang
   final String category; // Kategori transaksi (misal: Makanan, Gaji)
@@ -14,7 +13,6 @@ class TransactionModel {
   // Constructor untuk membuat objek transaksi
   TransactionModel({
     this.id,
-    this.idFirestore,
     required this.description,
     required this.amount,
     required this.category,
@@ -37,8 +35,7 @@ class TransactionModel {
   // Factory constructor untuk membuat objek dari Map (saat ambil dari database)
   factory TransactionModel.fromMap(Map<String, dynamic> m) {
     return TransactionModel(
-      id: m['id'] as int?, // ID SQLite
-      idFirestore: m['id_firestore'] as String?, // Ambil ID Firestore jika ada
+      id: m['id'] as int?,
       description: m['description'] as String,
       amount: (m['amount'] as num).toDouble(),
       category: m['category'] as String,

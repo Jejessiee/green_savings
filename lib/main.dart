@@ -11,12 +11,8 @@ import 'screens/login_screen.dart';
 import 'widgets/bottom_nav_bar.dart';
 import 'providers/transaction_provider.dart';
 import 'providers/budget_provider.dart';
-import 'package:firebase_core/firebase_core.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(); // Inisialisasi Firebase
-
+void main() {
   runApp(
     //MultiProvider untuk state management
     MultiProvider(
@@ -45,7 +41,7 @@ class PiggyFlowApp extends StatelessWidget {
         useMaterial3: true,
       ),
       // halaman awal login
-      home: const InitialLoaderScreen(),
+      home: const LoginRegisterScreen(),
       routes: {
         '/main': (context) {
           // Mengambil data user yang dikirim lewat Navigator.pushNamed
@@ -66,40 +62,6 @@ class MainScreen extends StatefulWidget {
 
   @override
   State<MainScreen> createState() => _MainScreenState();
-}
-
-class InitialLoaderScreen extends StatelessWidget {
-  const InitialLoaderScreen({super.key});
-
-  // Fungsi untuk menjalankan semua tugas berat
-  Future<void> _initializeApp(BuildContext context) async {
-    // 1. Inisialisasi Firebase (WAJIB)
-    // await Firebase.initializeApp();
-
-    // 2. Muat data provider (Sekarang aman dilakukan karena tidak memblokir render pertama)
-    await context.read<TransactionProvider>().loadAll();
-    await context.read<BudgetProvider>().loadBudgets();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder(
-      future: _initializeApp(context),
-      builder: (context, snapshot) {
-        // Jika masih loading (Waiting), tampilkan CircularProgressIndicator atau animasi logo
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(), // Atau tampilkan logo di sini
-            ),
-          );
-        }
-
-        // Jika sudah selesai, pindah ke halaman Login
-        return const LoginRegisterScreen();
-      },
-    );
-  }
 }
 
 class _MainScreenState extends State<MainScreen> {

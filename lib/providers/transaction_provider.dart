@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/db_helper.dart';
 import '../models/transaction.dart';
 
@@ -14,93 +12,39 @@ class TransactionProvider extends ChangeNotifier {
   List<TransactionModel> get items => _items;
   bool get loading => _loading;
 
-  // Deklarasi Firestore
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  // Getter untuk User ID
-  String? get currentUserId => _auth.currentUser?.uid;
-
   // Constructor: langsung load semua data saat provider dibuat
-  TransactionProvider();
+  TransactionProvider() {
+    loadAll();
+  }
 
   // Fungsi untuk mengambil semua data transaksi dari database
-    Future<void> loadAll() async {
-    // Cek apakah user sudah login dan ada koneksi (sederhana)
-      try {
-        _loading = true;
-        notifyListeners();
-
-        // Cek apakah user sudah login
-        if (currentUserId != null) {
-          // 1. MUAT DARI FIRESTORE
-          final snapshot = await _firestore
-              .collection('users')
-              .doc(currentUserId)
-              .collection('transactions')
-              .get();
-
-          // 2. KONVERSI & UPDATE SQLite Lokal
-          List<TransactionModel> cloudTransactions = snapshot.docs.map((doc) {
-            // Ambil data dan tambahkan Firestore ID untuk referensi
-            Map<String, dynamic> data = doc.data();
-            // Asumsi: TransactionModel.fromMap sekarang sudah bisa menangani data Firestore
-            return TransactionModel.fromMap(data);
-          }).toList();
-
-          // **Catatan:** Metode deleteAllTransactions() harus ditambahkan di DbHelper.
-          // await _db.deleteAllTransactions();
-
-          // Memuat dan menimpa data di SQLite (untuk offline-first)
-          for (var t in cloudTransactions) {
-            await _db.insertTransaction(t);
-          }
-
-          _items = cloudTransactions; // Gunakan data dari cloud
-
-        } else {
-          // Jika tidak ada user login, muat dari SQLite (Data Anonim/Lokal)
-          _items = await _db.getAllTransactions();
-        }
-
-      } catch (e) {
-        print('Error during synchronization: $e');
-        // Fallback: Jika terjadi error di cloud (misalnya, izin), muat dari SQLite
-        _items = await _db.getAllTransactions();
-      } finally {
-        _loading = false;
-        notifyListeners();
-      }
-    }
-
-  // Fungsi untuk menambahkan transaksi baru ke database
-  Future<void> addTransaction(TransactionModel transaction) async {
-    if (currentUserId == null) {
-      // Jika user belum login, simpan hanya ke lokal (SQLite)
-      await _db.insertTransaction(transaction);
-      await loadAll();
-      return;
-    }
+  Future<void> loadAll() async {
+    print('🔄 [TransactionProvider] loadAll() start');
+    _loading = true;
+    notifyListeners();
 
     try {
-      // 1. SIMPAN KE FIRESTORE (CLOUD)
-      // Pastikan TransactionModel punya metode toMap() yang cocok
-      await _firestore
-          .collection('users')
-          .doc(currentUserId) // Simpan data di bawah ID pengguna
-          .collection('transactions')
-          .add(transaction.toMap());
+      // Mengambil data dari SQLite
+      _items = await _db.getAllTransactions();
+      print('✅ [TransactionProvider] loaded ${_items.length} transactions');
+    } catch (e, st) {
+      print('❌ [TransactionProvider] error in loadAll: $e');
+      print(st);
+      _items = [];
+    }
 
-      // 2. SIMPAN KE SQLite (LOKAL) - Tetap dilakukan agar cepat diakses offline
-      await _db.insertTransaction(transaction);
+    _loading = false;
+    notifyListeners();
+    print('🔵 [TransactionProvider] loadAll() finished');
+  }
 
-    } catch (e) {
-      print('Error saving transaction to cloud: $e');
-      // Jika gagal ke cloud, tetap simpan lokal sebagai fallback
-      await _db.insertTransaction(transaction);
-    } finally {
-      // 3. REFRESH DATA
+  // Fungsi untuk menambahkan transaksi baru ke database
+  Future<void> addTransaction(TransactionModel t) async {
+    try {
+      await _db.insertTransaction(t); // Simpan ke SQLite
       await loadAll();
+    } catch (e) {
+      print('❌ addTransaction error: $e');
     }
   }
 

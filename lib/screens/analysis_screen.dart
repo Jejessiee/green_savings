@@ -6,7 +6,6 @@ import '../models/budget.dart';
 import '../models/transaction.dart';
 import '../providers/transaction_provider.dart';
 import '../providers/budget_provider.dart';
-import '../services/ai_service.dart';
 
 // Halaman Analisis & anggaran
 class AnalysisScreen extends StatefulWidget {
@@ -235,7 +234,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Jika belum ada anggaran
+          // Jikka belum ada anggaran
           if (budgets.isEmpty)
             Padding(
               padding: const EdgeInsets.all(16),
@@ -321,35 +320,6 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                     context, budgetProvider, transactionProvider);
               },
               child: const Text('Kelola Anggaran'),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Leafy AI Service
-          Center(
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.tips_and_updates),
-              label: const Text("Minta Saran Leafy"),
-              onPressed: () async {
-                // Memanggil data lokal
-                final transactions = context.read<TransactionProvider>().items;
-                // Memanggil Leafy AI Service
-                final advice = await LeafyAIService().getFinancialAdvice(transactions);
-
-                // Menampilkan hasil dalam bentuk AlertDialog
-                showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: Row(children: [
-                      Image.asset('images/leafy.png', height: 40),
-                      const Text(" Kata Leafy")
-                    ]),
-                    content: Text(advice),
-                    actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Oke"))],
-                  ),
-                );
-              },
             ),
           ),
 
