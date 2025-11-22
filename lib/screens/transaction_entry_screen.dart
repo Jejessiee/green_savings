@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../app_colors.dart';
 import '../models/transaction.dart';
 import '../providers/transaction_provider.dart';
@@ -89,9 +90,19 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
   void _saveTransaction() async {
     final amountInput = double.tryParse(_amountController.text);
 
+    // 1. Validasi Input
     if (amountInput == null || amountInput <= 0 || _descController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Jumlah atau Deskripsi tidak valid.')),
+      );
+      return;
+    }
+
+    // 2. Cek Login User (Wajib ada user untuk menyimpan data)
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sesi habis. Silakan login kembali.')),
       );
       return;
     }
@@ -101,7 +112,7 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
     try {
       double finalAmountInIDR = amountInput;
 
-      // 1. Konversi Mata Uang (Jika bukan IDR)
+      // 3. Konversi Mata Uang (Jika bukan IDR)
       if (_selectedCurrency != 'IDR') {
         try {
           double rate = await CurrencyService.getExchangeRate(_selectedCurrency);
@@ -112,8 +123,9 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
         }
       }
 
-      // 2. Buat Model Transaksi
+      // 4. Buat Model Transaksi dengan UserID
       final newTransaction = TransactionModel(
+        userId: user.uid, // ID User Firebase
         description: _descController.text,
         amount: finalAmountInIDR, // Simpan dalam Rupiah
         category: _selectedCategory,
@@ -125,11 +137,11 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
 
       if (!mounted) return;
 
-      // 3. Simpan ke Database via Provider
+      // 5. Simpan ke Database via Provider
       // Karena di Provider sudah ada 'rethrow', jika ini gagal, kode akan lompat ke 'catch' di bawah
       await context.read<TransactionProvider>().addTransaction(newTransaction);
 
-      // 4. Pesan Sukses
+      // 6. Pesan Sukses
       String message = '${_type == TransactionType.income ? "Pemasukan" : "Pengeluaran"} berhasil disimpan!';
       if (_selectedCurrency != 'IDR') {
         message += ' (Dikonversi: Rp ${finalAmountInIDR.toStringAsFixed(0)})';
@@ -141,7 +153,7 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
       Navigator.of(context).pop();
 
     } catch (e) {
-      // 5. Tangkap Error (Gagal Simpan / Gagal Koneksi)
+      // 7. Tangkap Error (Gagal Simpan / Gagal Koneksi)
       // Pesan error akan muncul di sini, dan halaman TIDAK tertutup
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

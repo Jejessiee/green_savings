@@ -4,6 +4,7 @@ enum TransactionType { income, expense }
 // Model data untuk transaksi keuangan
 class TransactionModel {
   final int? id; // ID transaksi (nullable, karena bisa auto-increment)
+  final String userId; // Untuk membedakan data antar user
   final String description; // Deskripsi atau catatan transaksi
   final double amount; // Jumlah uang
   final String category; // Kategori transaksi (misal: Makanan, Gaji)
@@ -15,6 +16,7 @@ class TransactionModel {
   // Constructor untuk membuat objek transaksi
   TransactionModel({
     this.id,
+    required this.userId,
     required this.description,
     required this.amount,
     required this.category,
@@ -27,7 +29,8 @@ class TransactionModel {
   // Konversi objek transaksi ke Map (untuk disimpan ke database)
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      'id': id, // SQLite butuh ID jika update, tapi null jika insert (auto-generate)
+      'userId': userId, // Simpan ID pemilik data
       'description': description,
       'amount': amount,
       'category': category,
@@ -42,6 +45,7 @@ class TransactionModel {
   factory TransactionModel.fromMap(Map<String, dynamic> m) {
     return TransactionModel(
       id: m['id'] as int?,
+      userId: m['userId'] ?? '',
       description: m['description'] as String,
       amount: (m['amount'] as num).toDouble(),
       category: m['category'] as String,

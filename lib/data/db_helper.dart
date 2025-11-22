@@ -15,14 +15,8 @@ class DbHelper {
   // Getter untuk mengakses database, akan inisialisasi jika belum tersedia
   Future<Database> get database async {
     if (_db != null) return _db!;
-    try {
-      _db = await _initDatabase();
-      return _db!;
-    } catch (e, st) {
-      print('❌ [DbHelper] error opening DB: $e');
-      print(st);
-      rethrow;
-    }
+    _db = await _initDatabase();
+    return _db!;
   }
 
   // Fungsi untuk inisialisasi database dan menentukan path penyimpanan
@@ -42,6 +36,7 @@ class DbHelper {
     await db.execute('''
       CREATE TABLE transactions(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId TEXT,
         description TEXT,
         amount REAL,
         category TEXT,
@@ -56,6 +51,7 @@ class DbHelper {
     await db.execute('''
       CREATE TABLE budgets (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        userId TEXT,
         category TEXT NOT NULL,
         limitAmount REAL NOT NULL,
         month TEXT NOT NULL
@@ -69,6 +65,18 @@ class DbHelper {
   Future<int> insertTransaction(TransactionModel t) async {
     final db = await database;
     return await db.insert('transactions', t.toMap());
+  }
+
+  // Ambil transaksi HANYA milik User ID tertentu
+  Future<List<TransactionModel>> getTransactionsByUser(String userId) async {
+    final db = await database;
+    final maps = await db.query(
+      'transactions',
+      where: 'userId = ?', // Filter data berdasarkan user
+      whereArgs: [userId],
+      orderBy: 'date DESC',
+    );
+    return maps.map((m) => TransactionModel.fromMap(m)).toList();
   }
 
   // Update data transaksi berdasarkan ID
@@ -111,10 +119,14 @@ class DbHelper {
     );
   }
 
-  // Ambil semua data anggaran dari database
-  Future<List<Budget>> getBudgets() async {
+  // Ambil anggaran HANYA milik User ID tertentu
+  Future<List<Budget>> getBudgetsByUser(String userId) async {
     final db = await database;
-    final maps = await db.query('budgets');
+    final maps = await db.query(
+      'budgets',
+      where: 'userId = ?', // Filter data berdasarkan user
+      whereArgs: [userId],
+    );
     return maps.map((e) => Budget.fromMap(e)).toList();
   }
 

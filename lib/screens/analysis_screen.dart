@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../app_colors.dart';
 import '../models/budget.dart';
 import '../models/transaction.dart';
@@ -139,6 +140,10 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                       .replaceAll(',', '');
                   final value = double.tryParse(text);
 
+                  // Ambil User ID
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user == null) return; // Safety Check
+
                   if (value != null && selectedCategory.isNotEmpty) {
                     // Simpan anggaran berdasarkan bulan saat ini
                     final now = DateTime.now();
@@ -152,6 +157,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                           b.month == currentMonth,
                       orElse: () => Budget(
                         id: null,
+                        userId: user.uid,
                         category: selectedCategory,
                         limitAmount: value,
                         month: currentMonth,
@@ -162,6 +168,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                     if (existing.id == null) {
                       await budgetProvider.addBudget(
                         Budget(
+                          userId: user.uid,
                           category: selectedCategory,
                           limitAmount: value,
                           month: currentMonth,
@@ -171,6 +178,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                       // Jika sudah ada data, update data
                       final updated = Budget(
                         id: existing.id,
+                        userId: user.uid,
                         category: selectedCategory,
                         limitAmount: value,
                         month: currentMonth,
@@ -234,7 +242,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
           ),
           const SizedBox(height: 10),
 
-          // Jikka belum ada anggaran
+          // Jika belum ada anggaran
           if (budgets.isEmpty)
             Padding(
               padding: const EdgeInsets.all(16),

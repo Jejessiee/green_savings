@@ -1,16 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../app_colors.dart';
 import '../models/transaction.dart';
 import '../providers/transaction_provider.dart';
-import 'login_screen.dart';
+import '../services/auth_service.dart'; // Import AuthService untuk logout
 
 // Halaman utama aplikasi
-class HomeScreen extends StatelessWidget {
-  // Data user yang login
-  final UserData data;
+class HomeScreen extends StatefulWidget {
+  final User user;
 
-  const HomeScreen({super.key, required this.data});
+  const HomeScreen({super.key, required this.user});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // Variabel lokal untuk user agar bisa di-refresh
+  late User _currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentUser = widget.user;
+    _refreshUserData(); // Refresh data saat halaman dimuat
+  }
+
+  // Fungsi untuk memaksa refresh data user (agar nama muncul)
+  Future<void> _refreshUserData() async {
+    await _currentUser.reload(); // Ambil data terbaru dari Firebase
+    if (mounted) {
+      setState(() {
+        // Update variabel _currentUser dengan data terbaru
+        _currentUser = FirebaseAuth.instance.currentUser!;
+      });
+    }
+  }
 
   // Format angka menjadi format mata uang Rupiah
   String formatCurrency(double amount) {
@@ -131,8 +157,9 @@ class HomeScreen extends StatelessWidget {
                       fontWeight: FontWeight.w400,
                     ),
                   ),
+                  // Tampilkan nama dari Firebase User
                   Text(
-                    '${data.name}!',
+                    '${_currentUser.displayName ?? "User"}!',
                     style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -145,13 +172,10 @@ class HomeScreen extends StatelessWidget {
 
           // Tombol Logout
           GestureDetector(
-            onTap: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const LoginRegisterScreen()),
-                    (Route<dynamic> route) => false,
-              );
+            onTap: () async {
+              // Panggil logout dari AuthService
+              // StreamBuilder di main.dart akan otomatis mendeteksi logout dan pindah ke LoginScreen
+              await AuthService().logout();
             },
             child: Container(
               padding: const EdgeInsets.all(8),

@@ -1,20 +1,6 @@
 import 'package:flutter/material.dart';
 import '../app_colors.dart';
-import 'package:greensavings/main.dart';
-import 'login_screen.dart';
-
-// model untuk menyimpan informasi dasar tentang user
-class UserData {
-  final String name;
-  final String email;
-  final String password;
-
-  const UserData({
-    required this.name,
-    required this.email,
-    required this.password,
-  });
-}
+import '../services/auth_service.dart';
 
 //Halaman Login & Register
 class LoginRegisterScreen extends StatefulWidget {
@@ -27,17 +13,17 @@ class LoginRegisterScreen extends StatefulWidget {
 class _LoginRegisterScreenState extends State<LoginRegisterScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final AuthService _authService = AuthService(); // Instance AuthService
 
-  // variabel untuk menyimpan data user yang berhasil registrasi
-  UserData? registeredUser;
-
+  // Controller TextFields
   final _loginEmailController = TextEditingController();
   final _loginPasswordController = TextEditingController();
   final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _registerEmailController = TextEditingController();
+  final _registerPasswordController = TextEditingController();
 
-  bool _obscure = true; // mengatur visibilitas password
+  bool _obscure = true; // Visibilitas password
+  bool _isLoading = false; // Status loading
 
   @override
   void initState() {
@@ -45,65 +31,77 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
     _tabController = TabController(length: 2, vsync: this);
   }
 
-  // Fungsi untuk registrasi
-  void _register() {
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _loginEmailController.dispose();
+    _loginPasswordController.dispose();
+    _nameController.dispose();
+    _registerEmailController.dispose();
+    _registerPasswordController.dispose();
+    super.dispose();
+  }
+
+  // Fungsi untuk Registrasi ke Firebase
+  void _register() async {
     if (_nameController.text.isEmpty ||
-        _emailController.text.isEmpty ||
-        _passwordController.text.isEmpty) {
+        _registerEmailController.text.isEmpty ||
+        _registerPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Harap isi semua kolom')),
       );
       return;
     }
 
-    // Simpan data user ke variabel registeredUser
-    setState(() {
-      registeredUser = UserData(
-        name: _nameController.text.trim(),
-        email: _emailController.text.trim(),
-        password: _passwordController.text.trim(),
+    setState(() => _isLoading = true);
+
+    try {
+      // Panggil AuthService untuk daftar & simpan profil
+      await _authService.register(
+        _registerEmailController.text.trim(),
+        _registerPasswordController.text.trim(),
+        _nameController.text.trim(),
       );
-    });
+      // Jika sukses, tidak perlu navigasi manual.
+      // StreamBuilder di main.dart akan mendeteksi user login dan pindah ke Home.
 
-    // Pesan Berhasil registrasi
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registrasi berhasil! Silakan login')),
-    );
-
-    // langsung pindah ke tab login setelah registrasi
-    _tabController.animateTo(0);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Registrasi Gagal: ${e.toString()}'), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
-  // Fungsi untuk Login
-  void _login() {
-    final email = _loginEmailController.text.trim();
-    final password = _loginPasswordController.text.trim();
-
-    // Pesan yang muncul jika tidak ada user yang terdaftar
-    if (registeredUser == null) {
+  // Fungsi untuk Login ke Firebase
+  void _login() async {
+    if (_loginEmailController.text.isEmpty || _loginPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Belum ada akun terdaftar!')),
+        const SnackBar(content: Text('Email dan Password harus diisi')),
       );
       return;
     }
 
-    // Cek kesesuaian email & password
-    if (email == registeredUser!.email && password == registeredUser!.password) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => MainScreen(userData: registeredUser!)),
+    setState(() => _isLoading = true);
+
+    try {
+      // Panggil AuthService untuk login
+      await _authService.login(
+        _loginEmailController.text.trim(),
+        _loginPasswordController.text.trim(),
       );
-    } else {
-      // Jika tidak cocok maka akan memunculkan error
+
+      // Jika sukses, StreamBuilder di main.dart akan otomatis pindah ke Home.
+
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Email atau password salah!'),
-          backgroundColor: Colors.redAccent,
-        ),
+        SnackBar(content: Text('Login Gagal: ${e.toString()}'), backgroundColor: Colors.red),
       );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -154,7 +152,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
                     ],
                   ),
 
-                  // TAB LOGIN
+                  // TAB LOGIN & REGISTER
                   child: Column(
                     children: [
                       const SizedBox(height: 10),
@@ -170,21 +168,22 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
                       ),
                       const SizedBox(height: 10),
                       Container(
-                        height: 360,
+                        height: 380,
                         padding: const EdgeInsets.all(20),
                         child: TabBarView(
                           controller: _tabController,
                           children: [
+                            // Halaman Login
                             Column(
                               children: [
                                 TextField(
                                   controller: _loginEmailController,
+                                  keyboardType: TextInputType.emailAddress,
                                   decoration: InputDecoration(
                                     labelText: "Email",
                                     filled: true,
                                     fillColor: Colors.white,
-                                    prefixIcon:
-                                    const Icon(Icons.email_outlined),
+                                    prefixIcon: const Icon(Icons.email_outlined),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(15),
                                     ),
@@ -228,7 +227,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
                               ],
                             ),
 
-                            // TAB REGISTER
+                            // Halaman Register
                             Column(
                               children: [
                                 TextField(
@@ -246,13 +245,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
                                 ),
                                 const SizedBox(height: 15),
                                 TextField(
-                                  controller: _emailController,
+                                  controller: _registerEmailController, // Gunakan controller khusus register
+                                  keyboardType: TextInputType.emailAddress,
                                   decoration: InputDecoration(
                                     labelText: "Email",
                                     filled: true,
                                     fillColor: Colors.white,
-                                    prefixIcon:
-                                    const Icon(Icons.email_outlined),
+                                    prefixIcon: const Icon(Icons.email_outlined),
                                     border: OutlineInputBorder(
                                       borderRadius: BorderRadius.circular(15),
                                     ),
@@ -260,14 +259,13 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
                                 ),
                                 const SizedBox(height: 15),
                                 TextField(
-                                  controller: _passwordController,
+                                  controller: _registerPasswordController, // Gunakan controller khusus register
                                   obscureText: _obscure,
                                   decoration: InputDecoration(
                                     labelText: "Password",
                                     filled: true,
                                     fillColor: Colors.white,
-                                    prefixIcon:
-                                    const Icon(Icons.lock_outline),
+                                    prefixIcon: const Icon(Icons.lock_outline),
                                     suffixIcon: IconButton(
                                       icon: Icon(_obscure
                                           ? Icons.visibility
@@ -281,7 +279,9 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
                                   ),
                                 ),
                                 const SizedBox(height: 25),
-                                ElevatedButton.icon(
+                                _isLoading
+                                    ? const CircularProgressIndicator()
+                                    : ElevatedButton.icon(
                                   onPressed: _register,
                                   icon: const Icon(Icons.person_add_alt),
                                   label: const Text(
@@ -292,7 +292,7 @@ class _LoginRegisterScreenState extends State<LoginRegisterScreen>
                                     ),
                                   ),
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFF81C784),
+                                    backgroundColor: const Color(0xFF81C784),
                                     foregroundColor: Colors.white,
                                     padding: const EdgeInsets.symmetric(
                                         vertical: 14, horizontal: 50),
