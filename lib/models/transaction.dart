@@ -57,4 +57,29 @@ class TransactionModel {
       originalAmount: (m['originalAmount'] as num?)?.toDouble() ?? (m['amount'] as num).toDouble(),
     );
   }
+
+  // Untuk edit objek transaksi
+  TransactionModel copyWith({
+    int? id,
+    String? userId,
+    String? description,
+    double? amount,
+    String? category,
+    TransactionType? type,
+    DateTime? date,
+    String? originalCurrency,
+    double? originalAmount,
+  }) {
+    return TransactionModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      description: description ?? this.description,
+      amount: amount ?? this.amount,
+      category: category ?? this.category,
+      type: type ?? this.type,
+      date: date ?? this.date,
+      originalCurrency: originalCurrency ?? this.originalCurrency,
+      originalAmount: originalAmount ?? this.originalAmount,
+    );
+  }
 }

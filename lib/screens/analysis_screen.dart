@@ -198,6 +198,82 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
     );
   }
 
+  // Fungsi Dialog Konfirmasi Hapus
+  void _confirmDeleteBudget(BuildContext context, BudgetProvider provider, int budgetId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hapus Anggaran?'),
+        content: const Text('Anggaran ini akan dihapus permanen.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await provider.deleteBudget(budgetId);
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Anggaran berhasil dihapus')),
+              );
+            },
+            child: const Text('Hapus', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Fungsi Dialog Edit Anggaran (Khusus Limit)
+  void _showUpdateBudgetDialog(BuildContext context, BudgetProvider provider, Budget budget) {
+    final controller = TextEditingController(text: budget.limitAmount.toStringAsFixed(0));
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Edit Anggaran: ${budget.category}'),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(
+            labelText: 'Batas Baru (Rp)',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final value = double.tryParse(controller.text.replaceAll('.', '').replaceAll(',', ''));
+              if (value != null) {
+                // Buat objek budget baru dengan nilai yang diupdate
+                final updatedBudget = Budget(
+                  id: budget.id,
+                  userId: budget.userId,
+                  category: budget.category,
+                  month: budget.month,
+                  limitAmount: value,
+                );
+
+                await provider.updateBudget(updatedBudget);
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Anggaran berhasil diperbarui')),
+                );
+              }
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // UI Utama halaman analisis & anggaran
   @override
   Widget build(BuildContext context) {
@@ -271,49 +347,61 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
               // Tampilkan kartu untuk setiap anggaran
               return Padding(
                 padding: const EdgeInsets.only(bottom: 15),
-                child: Card(
-                  color: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)),
-                  elevation: 2,
-                  child: Padding(
-                    padding: const EdgeInsets.all(15),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          b.category,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                child: GestureDetector( // Tambahkan GestureDetector
+                  onTap: () => _showUpdateBudgetDialog(context, budgetProvider, b), // Ketuk untuk Edit
+                  onLongPress: () => _confirmDeleteBudget(context, budgetProvider, b.id!), // Tahan untuk Hapus
+                  child: Card(
+                    color: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15)),
+                    elevation: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(15),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Menambahkan Icon petunjuk kecil di pojok kanan atas (opsional)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                b.category,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                              const Icon(Icons.edit, size: 16, color: Colors.grey), // Indikator bisa diedit
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        // Progress Bar anggaran
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(5),
-                          child: LinearProgressIndicator(
-                            value: percentage.clamp(0.0, 1.0),
-                            backgroundColor: Colors.grey[200],
-                            valueColor: AlwaysStoppedAnimation(barColor),
-                            minHeight: 10,
+
+                          const SizedBox(height: 8),
+                          // Progress Bar anggaran
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(5),
+                            child: LinearProgressIndicator(
+                              value: percentage.clamp(0.0, 1.0),
+                              backgroundColor: Colors.grey[200],
+                              valueColor: AlwaysStoppedAnimation(barColor),
+                              minHeight: 10,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Terpakai: ${formatCurrency(spent)}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            Text(
-                              'Batas: ${formatCurrency(b.limitAmount)}',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Terpakai: ${formatCurrency(spent)}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              Text(
+                                'Batas: ${formatCurrency(b.limitAmount)}',
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

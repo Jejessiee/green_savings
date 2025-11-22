@@ -34,6 +34,9 @@ class LeafyFlowApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // fallback color jika AppColors.background ternyata gelap/hitam saat debugging
+    final Color bg = AppColors.background;
+
     return MaterialApp(
       title: 'Green Savings',
       debugShowCheckedModeBanner: false,

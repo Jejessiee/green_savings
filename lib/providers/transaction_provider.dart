@@ -13,6 +13,7 @@ class TransactionProvider extends ChangeNotifier {
   List<TransactionModel> get items => _items;
   bool get loading => _loading;
 
+  // Ambil User ID dari Firebase Auth
   String get _userId => FirebaseAuth.instance.currentUser?.uid ?? '';
 
     // Fungsi untuk mengambil semua data transaksi dari database

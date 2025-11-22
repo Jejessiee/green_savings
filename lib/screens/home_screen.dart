@@ -5,6 +5,7 @@ import '../app_colors.dart';
 import '../models/transaction.dart';
 import '../providers/transaction_provider.dart';
 import '../services/auth_service.dart'; // Import AuthService untuk logout
+import '../widgets/transaction_card.dart';
 
 // Halaman utama aplikasi
 class HomeScreen extends StatefulWidget {
@@ -115,10 +116,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     // List transaksi
                     const SizedBox(height: 10),
-                    ...transactions.map((t) => _buildTransactionTile(t)).toList(),
+
+                    // Menggunakan Widget TransactionCard untuk setiap item
+                    if (transactions.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.all(20),
+                        child: Center(child: Text("Belum ada transaksi")),
+                      )
+                    else
+                      ...transactions.map((t) => TransactionCard(transaction: t)).toList(),
                   ],
                 ),
               ),
+              const SizedBox(height: 80), // Space untuk BottomNav
             ],
           ),
         ),
@@ -265,97 +275,5 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ],
     );
-  }
-
-  // Widget untuk setiap transaksi di daftar transaksi
-  Widget _buildTransactionTile(TransactionModel t) {
-    final Map<String, dynamic> iconData = _getIconForCategory(t);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            height: 45,
-            width: 45,
-            decoration: BoxDecoration(
-              color: iconData['color'].withOpacity(0.15),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(iconData['icon'], color: iconData['color'], size: 24),
-          ),
-          const SizedBox(width: 15),
-
-          // Deskripsi Transaksi
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(t.description,
-                    style: const TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.w600)),
-                const SizedBox(height: 4),
-                Text(t.category,
-                    style: const TextStyle(color: Colors.grey, fontSize: 12)),
-              ],
-            ),
-          ),
-
-          // Jumlah transaksi
-          Text(
-            (t.type == TransactionType.income ? '+ ' : '- ') +
-                formatCurrency(t.amount),
-            style: TextStyle(
-              color:
-              t.type == TransactionType.income ? Colors.green : Colors.red,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Menampilkan ikon transaksi berdasarkan kategori
-  Map<String, dynamic> _getIconForCategory(TransactionModel t) {
-    IconData icon;
-    Color color;
-
-    // Jika transaksi berupa income
-    if (t.type == TransactionType.income) {
-      color = Colors.green;
-      if (t.category.toLowerCase().contains('gaji')) {
-        icon = Icons.attach_money;
-      } else if (t.category.toLowerCase().contains('bonus')) {
-        icon = Icons.card_giftcard;
-      } else {
-        icon = Icons.account_balance_wallet;
-      }
-
-      // Jika transaksi berupa expense
-    } else {
-      color = Colors.redAccent;
-      if (t.category.toLowerCase().contains('makan')) {
-        icon = Icons.fastfood;
-      } else if (t.category.toLowerCase().contains('transport')) {
-        icon = Icons.directions_car;
-      } else if (t.category.toLowerCase().contains('hiburan')) {
-        icon = Icons.movie;
-      } else if (t.category.toLowerCase().contains('belanja')) {
-        icon = Icons.shopping_bag;
-      } else {
-        icon = Icons.money_off;
-      }
-    }
-
-    return {'icon': icon, 'color': color};
   }
 }

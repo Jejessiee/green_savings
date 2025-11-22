@@ -53,8 +53,8 @@ Aplikasi ini menggunakan pendekatan **Hybrid Database** untuk keamanan dan perfo
 * `providers`: Logika bisnis dan state management.
 * `services`: Komunikasi dengan API eksternal (AuthService, CurrencyService, GeminiService).
 * `data`: Manajemen database lokal (DbHelper).
-* `screens`: Halaman antarmuka (Login, Home, Analysis, Transaction Entry, AI Chat).
-* `widgets`: Komponen UI reusable (BottomNavBar, Charts).
+* `screens`: Halaman antarmuka (Login, Home, Analysis, Transaction Entry, Transaction Edit, AI Chat).
+* `widgets`: Komponen UI reusable (BottomNavBar, Transaction Card).
 * `main.dart`: Entry point aplikasi.
 
 ## Cara Menjalankan Project
