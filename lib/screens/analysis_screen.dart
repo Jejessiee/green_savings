@@ -473,7 +473,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         Container(
-          height: 300,
+          height: 280,
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
               color: AppColors.primaryPink.withOpacity(0.3),
@@ -523,7 +523,7 @@ class _AnalysisScreenState extends State<AnalysisScreen> {
                           color: colors[idx % colors.length],
                           margin: const EdgeInsets.only(right: 6),
                         ),
-                        Text(cat, style: const TextStyle(fontSize: 12)),
+                        Text(cat, style: const TextStyle(fontSize: 10)),
                       ],
                     );
                   }).toList(),

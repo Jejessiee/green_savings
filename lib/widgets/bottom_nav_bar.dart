@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../app_colors.dart';
 
-class PiggyBottomNavBar extends StatelessWidget {
+class LeafyBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final Function(int) onTap;
 
-  const PiggyBottomNavBar({
+  const LeafyBottomNavBar({
     Key? key,
     required this.currentIndex,
     required this.onTap,
@@ -39,8 +39,8 @@ class PiggyBottomNavBar extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
                 _buildNavItem(1, Icons.home_outlined, Icons.home, 'Home'),
-                const SizedBox(width: 60), // ruang kosong untuk tombol add transaction
-                _buildNavItem(2, Icons.bar_chart_outlined, Icons.bar_chart, 'Stats'),
+                const SizedBox(width: 40), // Space untuk tombol tengah
+                _buildNavItem(2, Icons.bar_chart_outlined, Icons.bar_chart, 'Stats')
               ],
             ),
           ),

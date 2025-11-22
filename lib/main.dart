@@ -9,6 +9,7 @@ import 'screens/home_screen.dart';
 import 'screens/transaction_entry_screen.dart';
 import 'screens/analysis_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/ai_chat_screen.dart';
 import 'widgets/bottom_nav_bar.dart';
 import 'providers/transaction_provider.dart';
 import 'providers/budget_provider.dart';
@@ -22,14 +23,14 @@ void main() async {
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ChangeNotifierProvider(create: (_) => BudgetProvider()),
       ],
-      child: const PiggyFlowApp(),
+      child: const LeafyFlowApp(),
     ),
   );
 }
 
 // Widget utama aplikasi
-class PiggyFlowApp extends StatelessWidget {
-  const PiggyFlowApp({Key? key}) : super(key: key);
+class LeafyFlowApp extends StatelessWidget {
+  const LeafyFlowApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -92,10 +93,11 @@ class _MainScreenState extends State<MainScreen> {
     });
 
     //daftar halaman berdasarkan index
-        _screens = [
-      const Placeholder(), // Tombol tengah untuk input data transaksi
-      HomeScreen(user: widget.user),
-      const AnalysisScreen(), // halaman grafik & analisis
+    _screens = [
+      const Placeholder(), // Index 0: Tombol Add
+      HomeScreen(user: widget.user), // Index 1: Home
+      const AnalysisScreen(), // Index 2: Analysis
+      const AIChatScreen(),   // Index 3: Halaman Chat AI
     ];
   }
 
@@ -193,7 +195,21 @@ class _MainScreenState extends State<MainScreen> {
       body: SafeArea(
         child: _screens[_selectedIndex], // menampilkan halaman sesuai index yang dipilih
       ),
-      bottomNavigationBar: PiggyBottomNavBar(
+      // Tombol Floating AI di pojok kanan bawah
+      // Hanya muncul jika bukan sedang di halaman AI itu sendiri
+      floatingActionButton: _selectedIndex == 3 ? null : FloatingActionButton(
+        onPressed: () {
+          setState(() {
+            _selectedIndex = 3; // Pindah ke halaman AI Chat
+          });
+        },
+        backgroundColor: AppColors.darkGreen,
+        child: const Icon(Icons.psychology, color: Colors.white),
+        tooltip: 'Tanya Leafy',
+      ),
+
+      // Navigasi Bawah Custom
+      bottomNavigationBar: LeafyBottomNavBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
       ),
