@@ -42,9 +42,10 @@ class TransactionProvider extends ChangeNotifier {
   Future<void> addTransaction(TransactionModel t) async {
     try {
       await _db.insertTransaction(t); // Simpan ke SQLite
-      await loadAll();
+      await loadAll(); // Refresh list di UI
     } catch (e) {
       print('❌ addTransaction error: $e');
+      rethrow; // [PENTING] Lempar error agar UI tahu kalau simpan gagal
     }
   }
 
@@ -55,6 +56,7 @@ class TransactionProvider extends ChangeNotifier {
       await loadAll();
     } catch (e) {
       print('❌ updateTransaction error: $e');
+      rethrow; // [PENTING] Lempar error
     }
   }
 
@@ -65,6 +67,7 @@ class TransactionProvider extends ChangeNotifier {
       await loadAll();
     } catch (e) {
       print('❌ removeTransaction error: $e');
+      rethrow; // [PENTING] Lempar error
     }
   }
 }

@@ -9,6 +9,8 @@ class TransactionModel {
   final String category; // Kategori transaksi (misal: Makanan, Gaji)
   final TransactionType type; // Tipe transaksi (income/expense)
   final DateTime date; // Tanggal transaksi
+  final String originalCurrency; // Mata uang awal
+  final double originalAmount;   // Nilai awal
 
   // Constructor untuk membuat objek transaksi
   TransactionModel({
@@ -18,7 +20,9 @@ class TransactionModel {
     required this.category,
     required this.type,
     required this.date,
-  });
+    this.originalCurrency = 'IDR',
+    double? originalAmount,
+  }) : this.originalAmount = originalAmount ?? amount; // Jika null, samakan dengan amount
 
   // Konversi objek transaksi ke Map (untuk disimpan ke database)
   Map<String, dynamic> toMap() {
@@ -29,6 +33,8 @@ class TransactionModel {
       'category': category,
       'type': type == TransactionType.income ? 1 : 0, // 1 = income, 0 = expense
       'date': date.toIso8601String(), // Format untuk tanggal
+      'originalCurrency': originalCurrency,
+      'originalAmount': originalAmount,
     };
   }
 
@@ -43,6 +49,8 @@ class TransactionModel {
           ? TransactionType.income
           : TransactionType.expense,
       date: DateTime.parse(m['date'] as String),
+      originalCurrency: m['originalCurrency'] ?? 'IDR',
+      originalAmount: (m['originalAmount'] as num?)?.toDouble() ?? (m['amount'] as num).toDouble(),
     );
   }
 }

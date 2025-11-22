@@ -46,7 +46,9 @@ class DbHelper {
         amount REAL,
         category TEXT,
         type INTEGER,
-        date TEXT
+        date TEXT,
+        originalCurrency TEXT, 
+        originalAmount REAL
       )
     ''');
 

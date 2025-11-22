@@ -42,9 +42,9 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
   final TextEditingController _descController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
 
-  // Variabel state currency
   String _selectedCurrency = 'IDR';
-  final List<String> _currencies = ['IDR', 'USD', 'EUR', 'SGD'];
+  final List<String> _currencies = ['IDR', 'USD', 'EUR', 'SGD', 'JPY', 'MYR'];
+  bool _isConverting = false; // Status loading saat ambil API
 
   @override
   void initState() {
@@ -86,48 +86,74 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
     }
   }
 
-  // Menyimpan data transaksi ke dalam database
   void _saveTransaction() async {
-    final amount = double.tryParse(_amountController.text);
-    // validasi data yang diinput
-    if (amount == null || amount <= 0 || _descController.text.isEmpty) {
+    final amountInput = double.tryParse(_amountController.text);
+
+    if (amountInput == null || amountInput <= 0 || _descController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Jumlah atau Deskripsi tidak valid.')),
       );
       return;
     }
 
-    double finalAmount = amount;
+    setState(() => _isConverting = true); // Mulai Loading
 
-    // KONVERSI OTOMATIS KE IDR SEBELUM SIMPAN
-    if (_selectedCurrency != 'IDR') {
-      // Panggil service konversi
-      finalAmount = await CurrencyService.convertToIDR(amount, _selectedCurrency);
-    }
+    try {
+      double finalAmountInIDR = amountInput;
 
-    // Membuat objek transaksi baru
-    final newTransaction = TransactionModel(
-      description: _descController.text,
-      amount: amount,
-      category: _selectedCategory,
-      type: _type,
-      date: _selectedDate,
-    );
+      // 1. Konversi Mata Uang (Jika bukan IDR)
+      if (_selectedCurrency != 'IDR') {
+        try {
+          double rate = await CurrencyService.getExchangeRate(_selectedCurrency);
+          finalAmountInIDR = amountInput * rate;
+        } catch (e) {
+          // Jika gagal ambil kurs (misal offline), lempar error agar proses batal
+          throw Exception("Gagal mengambil kurs mata uang. Periksa internet.");
+        }
+      }
 
-    // simpan data ke provider
-    final provider = context.read<TransactionProvider>();
-    await provider.addTransaction(newTransaction);
+      // 2. Buat Model Transaksi
+      final newTransaction = TransactionModel(
+        description: _descController.text,
+        amount: finalAmountInIDR, // Simpan dalam Rupiah
+        category: _selectedCategory,
+        type: _type,
+        date: _selectedDate,
+        originalCurrency: _selectedCurrency,
+        originalAmount: amountInput,
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '${_type == TransactionType.income ? "Pemasukan" : "Pengeluaran"} berhasil disimpan!',
+      if (!mounted) return;
+
+      // 3. Simpan ke Database via Provider
+      // Karena di Provider sudah ada 'rethrow', jika ini gagal, kode akan lompat ke 'catch' di bawah
+      await context.read<TransactionProvider>().addTransaction(newTransaction);
+
+      // 4. Pesan Sukses
+      String message = '${_type == TransactionType.income ? "Pemasukan" : "Pengeluaran"} berhasil disimpan!';
+      if (_selectedCurrency != 'IDR') {
+        message += ' (Dikonversi: Rp ${finalAmountInIDR.toStringAsFixed(0)})';
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+
+      // Tutup halaman
+      Navigator.of(context).pop();
+
+    } catch (e) {
+      // 5. Tangkap Error (Gagal Simpan / Gagal Koneksi)
+      // Pesan error akan muncul di sini, dan halaman TIDAK tertutup
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Terjadi Kesalahan: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
         ),
-      ),
-    );
-
-    // Tutup halaman input data transaksi
-    Navigator.of(context).pop();
+      );
+    } finally {
+      // Stop Loading
+      if (mounted) setState(() => _isConverting = false);
+    }
   }
 
   @override
@@ -170,29 +196,18 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
 
           // Input jumlah transaksi
           Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Dropdown Mata Uang
-              DropdownButton<String>(
-                value: _selectedCurrency,
-                items: _currencies
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedCurrency = val);
-                },
-                style: TextStyle(color: AppColors.darkText, fontSize: 16),
-                underline: Container(height: 2, color: AppColors.primaryPink),
-              ),
-              const SizedBox(width: 10),
-              // TextField Jumlah
+              // Input Field
               Expanded(
+                flex: 2,
                 child: TextField(
                   controller: _amountController,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     labelText: 'Jumlah',
-                    prefixText: ' ', // Hilangkan 'Rp' karena sudah ada dropdown
+                    // Prefix text disesuaikan agar tidak double dengan dropdown
+                    prefixText: _selectedCurrency == 'IDR' ? 'Rp ' : '',
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15)),
                     filled: true,
@@ -200,8 +215,56 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
                   ),
                 ),
               ),
+              const SizedBox(width: 10),
+              // Dropdown Currency
+              Expanded(
+                flex: 1,
+                child: Container(
+                  height: 60, // Samakan tinggi dengan TextField default
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: Colors.grey.shade400),
+                  ),
+                  child: Center(
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: _selectedCurrency,
+                        isExpanded: true,
+                        icon: const Icon(Icons.arrow_drop_down),
+                        style: const TextStyle(
+                          color: AppColors.darkText,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                        items: _currencies.map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(value),
+                          );
+                        }).toList(),
+                        onChanged: (newValue) {
+                          setState(() {
+                            _selectedCurrency = newValue!;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
+          // Info kecil jika mata uang asing dipilih
+          if (_selectedCurrency != 'IDR')
+            Padding(
+              padding: const EdgeInsets.only(top: 5, left: 5),
+              child: Text(
+                '*Otomatis dikonversi ke IDR saat disimpan',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600], fontStyle: FontStyle.italic),
+              ),
+            ),
 
           const SizedBox(height: 15),
 
@@ -260,7 +323,8 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
 
           // Tombol simpan data
           ElevatedButton(
-            onPressed: _saveTransaction,
+            // Disable tombol saat sedang converting/loading
+            onPressed: _isConverting ? null : _saveTransaction,
             style: ElevatedButton.styleFrom(
               backgroundColor: _type == TransactionType.expense
                   ? AppColors.expenseRed
@@ -269,7 +333,16 @@ class _TransactionEntryScreenState extends State<TransactionEntryScreen> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
             ),
-            child: const Text(
+            child: _isConverting
+                ? const SizedBox(
+              height: 24,
+              width: 24,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 3,
+              ),
+            )
+                : const Text(
               'Simpan Transaksi',
               style: TextStyle(
                   fontSize: 18,
