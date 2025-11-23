@@ -69,7 +69,7 @@ class TransactionCard extends StatelessWidget {
 
       // Aksi Hapus
       onDismissed: (_) {
-        provider.removeTransaction(transaction.id!); // Menggunakan removeTransaction sesuai provider jejessiee
+        provider.removeTransaction(transaction.id!); // Menggunakan removeTransaction
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Transaksi dihapus")),
         );
